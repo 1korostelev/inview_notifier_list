@@ -1,6 +1,7 @@
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 import 'package:inview_notifier_list/src/widget_data.dart';
+import 'package:logger/logger.dart';
 
 import 'inview_notifier.dart';
 
@@ -55,45 +56,49 @@ class InViewState extends ChangeNotifier {
     // Iterate through each item to check
     // whether it is in the viewport
     _contexts.forEach((WidgetData item) {
-      // Retrieve the RenderObject, linked to a specific item
-      final RenderObject? renderObject = item.context!.findRenderObject();
+      try {
+        // Retrieve the RenderObject, linked to a specific item
+        final RenderObject? renderObject = item.context!.findRenderObject();
 
-      // If none was to be found, or if not attached, leave by now
-      if (renderObject == null || !renderObject.attached) {
-        return;
-      }
-
-      //Retrieve the viewport related to the scroll area
-      final RenderAbstractViewport viewport =
-          RenderAbstractViewport.of(renderObject)!;
-      final double vpHeight = notification.metrics.viewportDimension;
-      final RevealedOffset vpOffset =
-          viewport.getOffsetToReveal(renderObject, 0.0);
-
-      // Retrieve the dimensions of the item
-      final Size size = renderObject.semanticBounds.size;
-
-      //distance from top of the widget to top of the viewport
-      final double deltaTop = vpOffset.offset - notification.metrics.pixels;
-
-      //distance from bottom of the widget to top of the viewport
-      final double deltaBottom = deltaTop + size.height;
-      bool isInViewport = false;
-
-      //Check if the item is in the viewport by evaluating the provided widget's isInViewPortCondition condition.
-      isInViewport = _isInViewCondition!(deltaTop, deltaBottom, vpHeight);
-
-      if (isInViewport) {
-        //prevent changing the value on every scroll if its already the same
-        if (!_currentInViewIds.contains(item.id)) {
-          _currentInViewIds.add(item.id);
-          notifyListeners();
+        // If none was to be found, or if not attached, leave by now
+        if (renderObject == null || !renderObject.attached) {
+          return;
         }
-      } else {
-        if (_currentInViewIds.contains(item.id)) {
-          _currentInViewIds.remove(item.id);
-          notifyListeners();
+
+        //Retrieve the viewport related to the scroll area
+        final RenderAbstractViewport viewport =
+            RenderAbstractViewport.of(renderObject)!;
+        final double vpHeight = notification.metrics.viewportDimension;
+        final RevealedOffset vpOffset =
+            viewport.getOffsetToReveal(renderObject, 0.0);
+
+        // Retrieve the dimensions of the item
+        final Size size = renderObject.semanticBounds.size;
+
+        //distance from top of the widget to top of the viewport
+        final double deltaTop = vpOffset.offset - notification.metrics.pixels;
+
+        //distance from bottom of the widget to top of the viewport
+        final double deltaBottom = deltaTop + size.height;
+        bool isInViewport = false;
+
+        //Check if the item is in the viewport by evaluating the provided widget's isInViewPortCondition condition.
+        isInViewport = _isInViewCondition!(deltaTop, deltaBottom, vpHeight);
+
+        if (isInViewport) {
+          //prevent changing the value on every scroll if its already the same
+          if (!_currentInViewIds.contains(item.id)) {
+            _currentInViewIds.add(item.id);
+            notifyListeners();
+          }
+        } else {
+          if (_currentInViewIds.contains(item.id)) {
+            _currentInViewIds.remove(item.id);
+            notifyListeners();
+          }
         }
+      } catch (e) {
+        Logger().i(e);
       }
     });
   }
